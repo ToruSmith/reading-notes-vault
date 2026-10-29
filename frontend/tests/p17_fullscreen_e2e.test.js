@@ -356,6 +356,27 @@ const inCard = p =>
     });
     await v.close();
 
+    /* ───── 預設「單擊放大」開啟時，按卡片上的按鈕不可被當成單擊放大 ───── */
+    const ctx4 = await browser.newContext({ locale: 'zh-TW', viewport: { width: 1400, height: 800 } });
+    const z = await newPage(ctx4, env, OWNER); // 不關閉 vault-cvzoomclick：維持預設（開）
+    await open(z);
+    await t('單擊放大開啟時：按「互動」「✕」不會觸發放大，畫面縮放與位置不變', async () => {
+      const card = node(z, 'H1');
+      await card.locator('.cv-play').click();
+      await card.locator('iframe').waitFor();
+      const view = () => z.evaluate(() => JSON.stringify(VaultUI.canvasState().view));
+      const before = await view();
+      await card.locator('.cv-embbtn', { hasText: '互動' }).click();
+      await settle(z);
+      assert.strictEqual(await view(), before, '按「互動」後視角被改變（被當成單擊放大）');
+      assert.ok(await card.locator('.cv-emb.live').count(), '互動應已開啟');
+      await card.locator('.cv-embbtn', { hasText: '互動' }).click();
+      await card.locator('.cv-embbtn', { hasText: '✕' }).click();
+      await settle(z);
+      assert.strictEqual(await view(), before, '按「✕」後視角被改變');
+    });
+    await z.close();
+
     /* ───── 手機：工具列在底部、圓形按鈕開關 ───── */
     const mctx = await browser.newContext({
       locale: 'zh-TW',

@@ -1786,7 +1786,7 @@
   function onDown(e) {
     if (
       e.target.closest &&
-      e.target.closest('.cv-open, .cv-play, .cv-gtoggle, a, iframe, input, textarea, select')
+      e.target.closest('.cv-open, .cv-play, .cv-gtoggle, .cv-embbtn, button, a, iframe, input, textarea, select')
     )
       return;
     if (e.pointerType === 'mouse' && e.button > 1) return;
