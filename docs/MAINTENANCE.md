@@ -39,6 +39,7 @@
 - 靜態站 `site/lib/logic.js` 是 `frontend/logic.js` 的副本：改了 logic.js 要 `cp frontend/logic.js site/lib/logic.js`（`build.test.js` 會檢查）。
 - 程式碼格式：Prettier（`.prettierrc.json`，printWidth 110）；改完可 `npx prettier --write "frontend/*.js" "backend/*.gs"`。
 
+- 刪卡片連帶刪檔：`Core.gs` 的 `assetRefs_／restoreAssets_／dropAssets_`（`saveBoard_`、`deleteBoard_` 呼叫；只 trash；其他畫布讀不了就不動；新引用的檔案若在垃圾桶會 `store.untrash` 救回）。上傳去重：`findSameAsset_`。
 - 清理（P16）：後端 `Core.gs` 的 `unusedAssets_／scanAssets_／trashAssets_`（掃全部 `boards/` 的 file 卡；`ASSET_GRACE_DAYS=7`；只 `trash`，不永久刪除；移除時重算）；前端 `cleanup.js`（`U.cleanupSection`，由 `settings.js` 掛上）。
 
 ## 加一個新功能的最短路徑

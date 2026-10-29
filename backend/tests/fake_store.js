@@ -78,6 +78,13 @@ module.exports = function makeFakeStore() {
     trash(id) {
       files[id].trashed = true;
     },
+    untrash(folder, name) {
+      const id = Object.keys(files).find(
+        k => files[k].folder === folder && files[k].name === name && files[k].trashed
+      );
+      if (id) files[id].trashed = false;
+      return !!id;
+    },
     beginRebuild() {
       tmp = [];
     },

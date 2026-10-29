@@ -27,10 +27,16 @@ function seed() {
   s.saveTopic({ id: 'b', title: '乙', defaultPublic: false });
   return s;
 }
-const up = (s, kind) =>
+let seq = 0; // 每次上傳內容都不同（相同內容會被去重）
+const png = k =>
+  'data:image/png;base64,' +
+  Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.from([k])]).toString(
+    'base64'
+  );
+const up = (s, kind, same) =>
   kind === 'img'
-    ? H('uploadImage', { data: IMG }, OWNER, 'RUN', s)
-    : H('uploadHtml', { text: '<h1>x</h1>' }, OWNER, 'RUN', s);
+    ? H('uploadImage', { data: png(same ? 1 : ++seq + 1) }, OWNER, 'RUN', s)
+    : H('uploadHtml', { text: same ? '<h1>x</h1>' : '<h1>x' + ++seq + '</h1>' }, OWNER, 'RUN', s);
 const put = (s, topic, files) =>
   assert.ok(
     H(
@@ -128,5 +134,123 @@ t('清單格式錯誤、過長會被拒絕', () => {
   assert.strictEqual(H('trashAssets', {}, OWNER, 'RUN', s).ok, false);
   assert.strictEqual(H('trashAssets', { names: [] }, OWNER, 'RUN', s).ok, false);
   assert.strictEqual(H('trashAssets', { names: new Array(201).fill('a') }, OWNER, 'RUN', s).ok, false);
+});
+t('相同內容不重複存：HTML／圖片再上傳回傳舊 id，不新增檔案；不同內容才新增', () => {
+  const s = seed();
+  const a = up(s, 'html', true),
+    b = up(s, 'html', true);
+  assert.strictEqual(b.id, a.id);
+  assert.strictEqual(b.reused, true);
+  const c = H('uploadHtml', { text: '<h1>另一份</h1>' }, OWNER, 'RUN', s);
+  assert.notStrictEqual(c.id, a.id);
+  const i1 = up(s, 'img', true),
+    i2 = up(s, 'img', true);
+  assert.strictEqual(i2.id, i1.id);
+  assert.strictEqual(s.listFolder('assets').length, 3);
+});
+t('指定 id（還原備份）不走去重', () => {
+  const s = seed();
+  const a = up(s, 'html', true);
+  const r = H('uploadHtml', { text: '<h1>x</h1>', id: '20260101-zz01' }, OWNER, 'RUN', s);
+  assert.strictEqual(r.id, '20260101-zz01');
+  assert.notStrictEqual(r.id, a.id);
+});
+t('去重命中會更新舊檔時間（真實 Drive 上 7 天寬限因此重新計算）', () => {
+  const s = seed();
+  const a = up(s, 'html', true);
+  old(s);
+  assert.strictEqual(H('scanAssets', {}, OWNER, 'RUN', s).items.length, 1);
+  s.nowIso = '2026-11-30T00:00:00.000Z';
+  const again = up(s, 'html', true); // 命中舊檔 → 更新時間
+  assert.strictEqual(again.id, a.id);
+  assert.ok(s.calls.updateText >= 1, '命中時要更新檔案時間');
+});
+t('includeRecent：7 天內的也列出；移除時用同一個旗標', () => {
+  const s = seed();
+  const id = up(s, 'img').id;
+  assert.strictEqual(H('scanAssets', {}, OWNER, 'RUN', s).items.length, 0);
+  assert.strictEqual(H('scanAssets', { includeRecent: true }, OWNER, 'RUN', s).items.length, 1);
+  assert.strictEqual(H('trashAssets', { names: [id + '.img'] }, OWNER, 'RUN', s).trashed, 0);
+  assert.strictEqual(
+    H('trashAssets', { names: [id + '.img'], includeRecent: true }, OWNER, 'RUN', s).trashed,
+    1
+  );
+});
+
+/* ───── 刪卡片＝存檔時一併移到垃圾桶 ───── */
+const save = (s, topic, files, base) => {
+  const r = H(
+    'saveBoard',
+    {
+      topic,
+      baseUpdatedAt: base,
+      board: {
+        nodes: files.map((f, i) => ({
+          id: 'n' + i,
+          type: 'file',
+          file: f,
+          x: 0,
+          y: 0,
+          width: 200,
+          height: 100
+        })),
+        edges: []
+      }
+    },
+    OWNER,
+    'RUN',
+    s
+  );
+  assert.ok(r.ok, JSON.stringify(r));
+  return r;
+};
+t('畫布刪掉卡片並存檔：沒人用的圖片／HTML 立即移到垃圾桶；仍被保留的卡片不動', () => {
+  const s = seed();
+  const keep = up(s, 'img').id,
+    drop = up(s, 'html').id;
+  const r1 = save(s, 'a', ['assets/' + keep + '.img', 'assets/' + drop + '.html']);
+  const r2 = save(s, 'a', ['assets/' + keep + '.img'], r1.updatedAt);
+  assert.strictEqual(r2.removedAssets, 1);
+  assert.strictEqual(s.findFileByName('assets', drop + '.html'), null);
+  assert.ok(s.findFileByName('assets', keep + '.img'));
+});
+t('別張畫布（含私人）還在用的檔案，這張刪卡片時不會被移走', () => {
+  const s = seed();
+  const id = up(s, 'html').id;
+  const r1 = save(s, 'a', ['assets/' + id + '.html']);
+  save(s, 'b', ['assets/' + id + '.html']);
+  const r2 = save(s, 'a', [], r1.updatedAt);
+  assert.strictEqual(r2.removedAssets, 0);
+  assert.ok(s.findFileByName('assets', id + '.html'));
+});
+t('刪卡片後存檔、再「復原」重存：垃圾桶裡的檔案自動救回', () => {
+  const s = seed();
+  const id = up(s, 'img').id;
+  const r1 = save(s, 'a', ['assets/' + id + '.img']);
+  const r2 = save(s, 'a', [], r1.updatedAt);
+  assert.strictEqual(s.findFileByName('assets', id + '.img'), null);
+  save(s, 'a', ['assets/' + id + '.img'], r2.updatedAt);
+  assert.ok(s.findFileByName('assets', id + '.img'));
+});
+t('刪除整張畫布：只被它使用的檔案一併移走，別張在用的保留', () => {
+  const s = seed();
+  const only = up(s, 'img').id,
+    shared = up(s, 'html').id;
+  save(s, 'a', ['assets/' + only + '.img', 'assets/' + shared + '.html']);
+  save(s, 'b', ['assets/' + shared + '.html']);
+  const r = H('deleteBoard', { topic: 'a' }, OWNER, 'RUN', s);
+  assert.strictEqual(r.removedAssets, 1);
+  assert.strictEqual(s.findFileByName('assets', only + '.img'), null);
+  assert.ok(s.findFileByName('assets', shared + '.html'));
+});
+t('其他畫布讀不了：不移走任何檔案（寧可留著）', () => {
+  const s = seed();
+  const id = up(s, 'img').id;
+  const r1 = save(s, 'a', ['assets/' + id + '.img']);
+  save(s, 'b', []);
+  s.failRead[s.findFileByName('boards', 'b.canvas.json').fileId] = true;
+  const r2 = save(s, 'a', [], r1.updatedAt);
+  assert.strictEqual(r2.removedAssets, 0);
+  assert.ok(s.findFileByName('assets', id + '.img'));
 });
 console.log('\n清理未使用檔案：' + n + ' 項全部通過');

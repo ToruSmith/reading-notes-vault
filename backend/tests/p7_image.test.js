@@ -105,7 +105,9 @@ t('訪客版畫布：圖片路徑保留，奇怪副檔名的卡片被移除', ()
 });
 t('匯出分頁取回全部圖片；備份清單含圖片', () => {
   const s = seed();
-  for (let i = 0; i < 10; i++) H('uploadImage', { data: url('image/png', png) }, OWNER, 'RUN', s);
+  // 內容相同會被去重，所以每張結尾加不同的資料，確保是 10 個不同的檔
+  for (let i = 0; i < 10; i++)
+    H('uploadImage', { data: url('image/png', Buffer.concat([png, Buffer.alloc(i + 1)])) }, OWNER, 'RUN', s);
   let cur = null,
     got = 0;
   do {
