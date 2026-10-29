@@ -17,6 +17,8 @@
     var list = el('div', { id: 's-clist', class: 'cleanlist' });
     var checks = [];
     var go = el('button', { type: 'button', id: 's-cgo', text: T('移到垃圾桶'), hidden: true });
+    var recent = el('input', { type: 'checkbox', id: 's-crecent' });
+    var scanned = false;
     var scan = el('button', { type: 'button', id: 's-cscan', text: T('掃描') });
 
     function say(msg) {
@@ -68,7 +70,8 @@
     scan.onclick = function () {
       scan.disabled = true;
       say(T('掃描中…'));
-      U.api('scanAssets')
+      scanned = recent.checked;
+      U.api('scanAssets', { includeRecent: scanned })
         .then(function (r) {
           if (!r.ok) return say(T(r.error));
           show(r);
@@ -86,7 +89,7 @@
       });
       if (!names.length) return;
       go.disabled = true;
-      U.api('trashAssets', { names: names })
+      U.api('trashAssets', { names: names, includeRecent: scanned })
         .then(function (r) {
           if (!r.ok) return say(T(r.error));
           list.textContent = '';
@@ -107,6 +110,10 @@
           '找出沒有被任何畫布使用的圖片與 HTML 檔，確認後移到垃圾桶（可救回）。剛建立 7 天內的檔案不會列出。'
         )
       }),
+      el('label', { class: 'cleanrow' }, [
+        recent,
+        el('span', { text: T('也列出 7 天內建立的檔案（確認沒有尚未儲存的畫布時才勾）') })
+      ]),
       scan,
       info,
       list,

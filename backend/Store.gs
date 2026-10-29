@@ -421,6 +421,18 @@ function makeStore_(cfg) {
     trash: function (fileId) {
       DriveApp.getFileById(fileId).setTrashed(true);
     },
+    /** 把垃圾桶裡同名的檔案救回來（畫布刪卡片後又復原時用）。 */
+    untrash: function (folderName, name) {
+      const it = folder(folderName).getFilesByName(name);
+      while (it.hasNext()) {
+        const f = it.next();
+        if (f.isTrashed()) {
+          f.setTrashed(false);
+          return true;
+        }
+      }
+      return false;
+    },
     mimeOf: function (fileId) {
       return DriveApp.getFileById(fileId).getMimeType();
     },

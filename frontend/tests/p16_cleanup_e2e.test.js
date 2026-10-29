@@ -5,7 +5,7 @@ const env = makeEnv();
 env.store.saveTopic({ id: 'pub', title: '公開本', defaultPublic: true });
 const IMG = 'data:image/png;base64,iVBORw0KGgo=';
 const used = env.call('uploadImage', { data: IMG }).id;
-const free1 = env.call('uploadImage', { data: IMG }).id;
+const free1 = env.call('uploadImage', { data: 'data:image/png;base64,iVBORw0KGgoB' }).id;
 const free2 = env.call('uploadHtml', { text: '<h1>x</h1>' }).id;
 env.call('saveBoard', {
   topic: 'pub',

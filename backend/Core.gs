@@ -494,7 +494,7 @@ function handle_(action, payload, ctx, method, store) {
     case 'exportHtml':
       return exportHtml_(payload, store);
     case 'scanAssets':
-      return scanAssets_(store);
+      return scanAssets_(payload, store);
     case 'trashAssets':
       return trashAssets_(payload, store);
     case 'saveTopic':
@@ -987,8 +987,9 @@ function deleteBoard_(payload, store) {
     if (!topicMap_(store.getTopics())[topic]) return NOT_FOUND;
     const f = store.findFileByName('boards', topic + '.canvas.json');
     if (!f) return { ok: true, topic: topic, existed: false };
+    const refs = assetRefs_(store.readText(f.fileId));
     store.trash(f.fileId);
-    return { ok: true, topic: topic, existed: true };
+    return { ok: true, topic: topic, existed: true, removedAssets: dropAssets_(store, refs, [], f.fileId) };
   });
 }
 
@@ -1141,11 +1142,65 @@ function saveBoard_(payload, store) {
           server: { updatedAt: f.updatedAt, board: JSON.parse(store.readText(f.fileId)) }
         };
       }
-      return { ok: true, updatedAt: store.updateText(f.fileId, text) };
+      const before = assetRefs_(store.readText(f.fileId));
+      const after = assetRefs_(text);
+      const updatedAt = store.updateText(f.fileId, text);
+      restoreAssets_(store, after, before);
+      return { ok: true, updatedAt: updatedAt, removedAssets: dropAssets_(store, before, after, f.fileId) };
     }
     if (payload.baseUpdatedAt) return { ok: false, error: '衝突', code: 409, server: null };
-    return { ok: true, updatedAt: store.createText('boards', name, text).updatedAt };
+    const created = store.createText('boards', name, text);
+    restoreAssets_(store, assetRefs_(text), []);
+    return { ok: true, updatedAt: created.updatedAt, removedAssets: 0 };
   });
+}
+
+/* ───── 畫布刪卡片＝檔案一併移到垃圾桶 ─────
+ * 存檔時，這張畫布「原本有、現在沒有」的圖片／HTML，若其他畫布也沒用，就移到 Drive 垃圾桶（30 天可救回）。
+ * 另一張畫布讀不了就不動（寧可留著）。只有真的有卡片被移除時才會去讀其他畫布，一般存檔不增加成本。
+ * 反過來，存檔時新出現的引用若檔案已在垃圾桶（例如刪除後又「復原」），會自動從垃圾桶救回。 */
+function assetRefs_(text) {
+  const out = [];
+  try {
+    (JSON.parse(text).nodes || []).forEach(function (n) {
+      const m =
+        n && n.type === 'file' && typeof n.file === 'string' ? /^assets\/([^\/]+)$/.exec(n.file) : null;
+      if (m && ASSET_NAME_RE.test(m[1]) && out.indexOf(m[1]) === -1) out.push(m[1]);
+    });
+  } catch (e) {}
+  return out;
+}
+function restoreAssets_(store, now, before) {
+  now.forEach(function (nm) {
+    if (before.indexOf(nm) === -1 && !store.findFileByName('assets', nm)) store.untrash('assets', nm);
+  });
+}
+/** 回傳移到垃圾桶的檔案數。exceptFileId：這張畫布自己（用新內容判斷，不重讀）。 */
+function dropAssets_(store, before, after, exceptFileId) {
+  const gone = before.filter(function (nm) {
+    return after.indexOf(nm) === -1;
+  });
+  if (!gone.length) return 0;
+  const used = {};
+  try {
+    store.listFolder('boards').forEach(function (b) {
+      if (b.fileId === exceptFileId) return;
+      assetRefs_(store.readText(b.fileId)).forEach(function (nm) {
+        used[nm] = true;
+      });
+    });
+  } catch (e) {
+    return 0;
+  }
+  let n = 0;
+  gone.forEach(function (nm) {
+    const f = used[nm] ? null : store.findFileByName('assets', nm);
+    if (f) {
+      store.trash(f.fileId);
+      n++;
+    }
+  });
+  return n;
 }
 
 /**
@@ -1391,6 +1446,8 @@ function uploadImage_(payload, store) {
   const w = sizeWarning_('這張圖片', bytes, LIMITS.WARN_IMG_BYTES);
   if (w) warnings.push(w);
   return store.lock(function () {
+    const same = wanted ? null : findSameAsset_(store, '.img', d, d.length);
+    if (same) return { ok: true, id: same, bytes: bytes, warnings: warnings, created: false, reused: true };
     const id = wanted || newId_(store.today(), store.getIndexRows(), store);
     const name = id + '.img';
     const f = store.findFileByName('assets', name);
@@ -1434,6 +1491,26 @@ function getImage_(payload, owner, store) {
 function utf8Len_(s) {
   return unescape(encodeURIComponent(s)).length;
 }
+/**
+ * 內容完全相同的圖片／HTML 不重複存：找到就沿用舊檔（並「碰」一下更新時間，讓清理功能的 7 天寬限重新計算）。
+ * 先用檔案大小篩選再比對全文，所以平常只多讀少數幾個檔。還原備份（帶指定 id）不走這條。
+ */
+function findSameAsset_(store, ext, text, bytes) {
+  const hit = store.listFolder('assets').filter(function (f) {
+    return (
+      f.name.slice(-ext.length) === ext &&
+      ASSET_NAME_RE.test(f.name) &&
+      (f.size === undefined || f.size === bytes || f.size === text.length)
+    );
+  });
+  for (let i = 0; i < hit.length; i++) {
+    if (store.readText(hit[i].fileId) === text) {
+      store.updateText(hit[i].fileId, text);
+      return hit[i].name.slice(0, -ext.length);
+    }
+  }
+  return null;
+}
 function uploadHtml_(payload, store) {
   const text = payload.text;
   if (typeof text !== 'string' || !text.trim())
@@ -1447,6 +1524,8 @@ function uploadHtml_(payload, store) {
   if (wanted && !ID_RE.test(wanted))
     return { ok: false, error: '內容不符規則', reasons: ['id 格式必須是「日期-短碼」'] };
   return store.lock(function () {
+    const same = wanted ? null : findSameAsset_(store, '.html', text, bytes);
+    if (same) return { ok: true, id: same, bytes: bytes, created: false, reused: true };
     const id = wanted || newId_(store.today(), store.getIndexRows(), store);
     const name = id + '.html';
     const f = store.findFileByName('assets', name);
@@ -1490,7 +1569,7 @@ function exportImages_(payload, store) {
 const ASSET_GRACE_DAYS = 7;
 const ASSET_NAME_RE = /^(\d{8}-[a-z0-9]{2,8})\.(img|html)$/;
 
-function unusedAssets_(store) {
+function unusedAssets_(store, includeRecent) {
   const used = {};
   store.listFolder('boards').forEach(function (f) {
     let b;
@@ -1507,7 +1586,7 @@ function unusedAssets_(store) {
   const out = { items: [], recent: 0 };
   store.listFolder('assets').forEach(function (f) {
     if (!ASSET_NAME_RE.test(f.name) || used['assets/' + f.name]) return;
-    if (Date.parse(f.updatedAt) > limit) {
+    if (!includeRecent && Date.parse(f.updatedAt) > limit) {
       out.recent++;
       return;
     }
@@ -1516,10 +1595,10 @@ function unusedAssets_(store) {
   return out;
 }
 
-function scanAssets_(store) {
+function scanAssets_(payload, store) {
   let r;
   try {
-    r = unusedAssets_(store);
+    r = unusedAssets_(store, payload.includeRecent === true);
   } catch (e) {
     return { ok: false, error: '有畫布讀取失敗，已停止掃描' };
   }
@@ -1541,7 +1620,7 @@ function trashAssets_(payload, store) {
   if (!names || !names.length || names.length > 200) return { ok: false, error: '清單格式不符' };
   let r;
   try {
-    r = unusedAssets_(store);
+    r = unusedAssets_(store, payload.includeRecent === true);
   } catch (e) {
     return { ok: false, error: '有畫布讀取失敗，已停止掃描' };
   }
