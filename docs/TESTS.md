@@ -16,6 +16,7 @@
 | `frontend/tests/build.test.js` | 建置清單檢查：modules.json 與資料夾一致，避免「新增了檔案卻沒被內嵌／沒被翻譯檢查掃到」。 |
 | `frontend/tests/canvas.test.js` | 畫布純邏輯測試（node）。介面行為由 canvas_e2e.test.js 在真實瀏覽器驗證。 |
 | `frontend/tests/canvas_e2e.test.js` | 畫布端對端測試：真實 Chromium ＋ 真實的 build 後 index.html ＋ 真實的後端邏輯（Core.gs 跑在假儲存層上）。 |
+| `frontend/tests/example_mural.test.js` | 範例壁畫（examples/mural-coffee）：ZIP 可正常匯入、畫布內容完整、收合與簡報順序正確、訪客可看 |
 | `frontend/tests/i18n.test.js` | 雙語、主題、檢視的邏輯測試（node）：漏翻檢查、字典完整性、主題對比、圖庫日曆邏輯 |
 | `frontend/tests/logic.test.js` | 前端純邏輯測試（node）。畫面（DOM）部分無法在這裡測，需由使用者目視確認。 |
 | `frontend/tests/p10_fullbar_e2e.test.js` | 全螢幕工具列收成下拉；橫向手機（矮螢幕）畫布夠高；閱讀模式／訪客的畫布佔滿寬度 |

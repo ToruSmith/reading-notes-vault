@@ -1,6 +1,6 @@
 {
   "name": "reading-notes-vault",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "private": true,
   "description": "讀書筆記 Vault：Google Apps Script + Drive/Sheets 後端與單檔 HTML 前端的個人知識庫（含 JSON Canvas 畫布）",
   "license": "MIT",
