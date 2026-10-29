@@ -1,0 +1,6 @@
+{
+  "siteName": { "zh": "讀書筆記", "en": "Reading Notes" },
+  "tagline": { "zh": "我的讀書筆記與日記", "en": "My reading notes and journal" },
+  "defaultLang": "zh",
+  "htmlLang": { "zh": "zh-Hant", "en": "en" }
+}
