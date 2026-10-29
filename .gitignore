@@ -1,0 +1,4 @@
+node_modules/
+frontend/tests/shots/
+.DS_Store
+release/
