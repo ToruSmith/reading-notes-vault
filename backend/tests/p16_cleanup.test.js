@@ -253,4 +253,34 @@ t('其他畫布讀不了：不移走任何檔案（寧可留著）', () => {
   assert.strictEqual(r2.removedAssets, 0);
   assert.ok(s.findFileByName('assets', id + '.img'));
 });
+t('畫布裡刪掉「筆記」卡片或 SVG 卡片：只是移除卡片，筆記與 SVG 檔本身不會被刪', () => {
+  const s = seed();
+  assert.ok(
+    H(
+      'saveNote',
+      { id: '20261020-aa01', text: '---\nid: 20261020-aa01\ntitle: 筆記\ntopic: a\n---\n內文' },
+      OWNER,
+      'RUN',
+      s
+    ).ok
+  );
+  const svg = H(
+    'uploadSvg',
+    {
+      text: '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10"/></svg>'
+    },
+    OWNER,
+    'RUN',
+    s
+  );
+  const files = ['notes/20261020-aa01.md'].concat(svg.ok ? ['assets/' + svg.id + '.svg'] : []);
+  const r1 = save(s, 'a', files);
+  const r2 = save(s, 'a', [], r1.updatedAt);
+  assert.strictEqual(r2.removedAssets, 0);
+  assert.ok(s.findFileByName('notes', '20261020-aa01.md'));
+  if (svg.ok) assert.ok(s.findFileByName('assets', svg.id + '.svg'));
+  const d = H('deleteBoard', { topic: 'a' }, OWNER, 'RUN', s);
+  assert.strictEqual(d.removedAssets, 0);
+  assert.ok(s.findFileByName('notes', '20261020-aa01.md'));
+});
 console.log('\n清理未使用檔案：' + n + ' 項全部通過');
