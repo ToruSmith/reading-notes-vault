@@ -1,4 +1,4 @@
-// P4 安全自查：匿名存取私人內容、上傳端點濫用、惡意 SVG。結果同時寫成報告（docs/安全自查報告.md）。
+// P4 安全自查：匿名存取私人內容、上傳端點濫用、惡意 SVG。結果同時寫成報告（docs/SECURITY_AUDIT.md）。
 const vm = require('vm'),
   fs = require('fs'),
   assert = require('assert'),
@@ -665,5 +665,5 @@ const md = [
     );
   md.push('');
 });
-fs.writeFileSync(path.join(__dirname, '..', '..', 'docs', '安全自查報告.md'), md.join('\n'));
+fs.writeFileSync(path.join(__dirname, '..', '..', 'docs', 'SECURITY_AUDIT.md'), md.join('\n'));
 process.exit(fails ? 1 : 0);

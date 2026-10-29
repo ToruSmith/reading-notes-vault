@@ -37,4 +37,17 @@ t('site/lib/logic.js 與 frontend/logic.js 完全相同（靜態站用副本；�
   const b = fs.readFileSync(path.join(root, '..', 'site', 'lib', 'logic.js'), 'utf8');
   assert.strictEqual(a, b, '請執行：cp frontend/logic.js site/lib/logic.js');
 });
+t('repo 內所有檔名都是 ASCII（GitHub 網頁上傳會略過中文檔名）', () => {
+  const top = path.join(root, '..'),
+    bad = [];
+  (function walk(d) {
+    fs.readdirSync(d, { withFileTypes: true }).forEach(e => {
+      if (['node_modules', 'release', 'shots'].includes(e.name)) return;
+      const p = path.join(d, e.name);
+      if (/[^\x00-\x7F]/.test(e.name)) bad.push(path.relative(top, p));
+      if (e.isDirectory()) walk(p);
+    });
+  })(top);
+  assert.deepStrictEqual(bad, [], '這些檔名含非 ASCII：' + bad.join(', '));
+});
 console.log('\n建置清單：' + n + ' 項全部通過');
