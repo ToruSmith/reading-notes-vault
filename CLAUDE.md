@@ -3,11 +3,11 @@
 ## 這是什麼
 「讀書筆記 Vault」：個人知識庫。**後端** = Google Apps Script（資料放 Drive／Sheets），**前端** = 單一 `index.html`（無框架、純 JS，build 時把所有模組內嵌成一檔）。筆記是 Markdown＋YAML，畫布是 JSON Canvas（自訂欄位以 `x-` 開頭）。使用者以繁體中文溝通，介面有繁中／英文。
 
-此 repo 是**原始碼與參考專案**，不需執行也能閱讀；部署＝把 `dist/` 兩個產物貼進 Apps Script（見 `docs/使用說明書.md`）。
+此 repo 是**原始碼與參考專案**，不需執行也能閱讀；部署＝把 `dist/` 兩個產物貼進 Apps Script（見 `docs/USER_GUIDE.md`）。
 
 ## 先讀哪些
-1. 本檔 → 2. `docs/維護指南.md`（流程、常見的坑、各功能讀碼導覽）→ 3. 要改哪個功能就 `grep` 對應檔案。
-其他：`docs/使用說明書.md`（使用者視角）、`docs/安全自查報告.md`、`docs/測試索引.md`、`docs/history/`（歷史規劃書與驗收，**僅供查證，不是現行規格**）。
+1. 本檔 → 2. `docs/MAINTENANCE.md`（流程、常見的坑、各功能讀碼導覽）→ 3. 要改哪個功能就 `grep` 對應檔案。
+其他：`docs/USER_GUIDE.md`（使用者視角）、`docs/SECURITY_AUDIT.md`、`docs/TESTS.md`、`docs/history/`（歷史規劃書與驗收，**僅供查證，不是現行規格**）。
 
 ## 目錄地圖
 ```
@@ -27,7 +27,7 @@ docs/      文件   examples/  範例畫布與樣本 vault
 ## 指令
 - `node tools/test_all.js [關鍵字]`：重建並跑全部測試（約 70 秒；需要 Node 18+、playwright、esbuild）。**目前基準：50/50 全過。**
 - `node frontend/build.js`（`NO_MINIFY=1` 不壓縮以便除錯）、`node backend/build.js`。
-- `node tools/make_release.js`：產出 `release/讀書筆記Vault_發布版_v<版本>.zip`（版本取自 `package.json`）。
+- `node tools/make_release.js`：產出 `release/reading-notes-vault_release_v<版本>.zip`（版本取自 `package.json`）。
 - 格式：Prettier（`.prettierrc.json`）。
 
 ## 發布流程（給接手者）
@@ -48,7 +48,8 @@ docs/      文件   examples/  範例畫布與樣本 vault
    - 嵌入的 HTML：srcdoc + sandbox，**絕不給 `allow-same-origin`／`allow-top-navigation`**；`allow-scripts` 僅在卡片 `x-scripts===true`；只允許 https 網址；訪客只能取得被公開主題畫布引用的 HTML。
    - SVG 上傳要消毒；上傳有大小上限（`LIMITS`）。
    - 不把 token／金鑰放進前端。
-7. 保留未知的 `x-` 欄位（畫布讀寫要原樣保留）。
+7. **repo 內所有檔名一律用英文／ASCII**（GitHub 網頁上傳會略過中文檔名；`build.test.js` 會檢查）。文件內容可以是中文。
+8. 保留未知的 `x-` 欄位（畫布讀寫要原樣保留）。
 
 ## 已知的坑
 - 無頭 Chromium 的 `page.reload()` 後 localStorage 偶爾是 null → 測試用同一 context 開新頁；程式啟動時不要寫 localStorage。
@@ -64,4 +65,4 @@ docs/      文件   examples/  範例畫布與樣本 vault
 把下方「啟動提示詞」貼給 AI，並附上此 repo（或 ZIP）。完成修改後請它產出新的 `dist/` 與更新 `CHANGELOG.md`。
 
 ### 啟動提示詞
-> 你是「讀書筆記 Vault」的資深全端工程師。請先閱讀 repo 根目錄的 `CLAUDE.md`，再讀 `docs/維護指南.md`，確認你理解：目錄結構、只改原始檔不改 `dist/`、i18n 規則、安全底線、兩個部署的更新規則。然後執行 `node tools/test_all.js` 確認基準為全綠，再開始我的需求：＿＿＿。要求：先說明你打算改哪些檔案；改完全部測試要通過並新增對應測試；更新 `CHANGELOG.md` 與相關文件；最後交付新的 `dist/index.html`、`dist/Vault_all.gs`，並用繁體中文簡短說明改了什麼、我需要重新部署哪些部分。
+> 你是「讀書筆記 Vault」的資深全端工程師。請先閱讀 repo 根目錄的 `CLAUDE.md`，再讀 `docs/MAINTENANCE.md`，確認你理解：目錄結構、只改原始檔不改 `dist/`、i18n 規則、安全底線、兩個部署的更新規則。然後執行 `node tools/test_all.js` 確認基準為全綠，再開始我的需求：＿＿＿。要求：先說明你打算改哪些檔案；改完全部測試要通過並新增對應測試；更新 `CHANGELOG.md` 與相關文件；最後交付新的 `dist/index.html`、`dist/Vault_all.gs`，並用繁體中文簡短說明改了什麼、我需要重新部署哪些部分。
