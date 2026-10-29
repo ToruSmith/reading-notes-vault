@@ -621,18 +621,16 @@ fs.mkdirSync(SHOTS, { recursive: true });
       await p.locator('.cv-view').hover();
       await p.mouse.wheel(0, 0);
       await p.evaluate(() =>
-        document
-          .querySelector('.cv-view')
-          .dispatchEvent(
-            new WheelEvent('wheel', {
-              deltaX: 1,
-              deltaY: 0,
-              clientX: 10,
-              clientY: 10,
-              bubbles: true,
-              cancelable: true
-            })
-          )
+        document.querySelector('.cv-view').dispatchEvent(
+          new WheelEvent('wheel', {
+            deltaX: 1,
+            deltaY: 0,
+            clientX: 10,
+            clientY: 10,
+            bubbles: true,
+            cancelable: true
+          })
+        )
       );
       await settle(p);
       const z = await p.evaluate(() => ({
@@ -737,18 +735,16 @@ fs.mkdirSync(SHOTS, { recursive: true });
         });
         await p.mouse.wheel(0, 0);
         await p.evaluate(() =>
-          document
-            .querySelector('.cv-view')
-            .dispatchEvent(
-              new WheelEvent('wheel', {
-                deltaX: 1,
-                deltaY: 0,
-                clientX: 5,
-                clientY: 5,
-                bubbles: true,
-                cancelable: true
-              })
-            )
+          document.querySelector('.cv-view').dispatchEvent(
+            new WheelEvent('wheel', {
+              deltaX: 1,
+              deltaY: 0,
+              clientX: 5,
+              clientY: 5,
+              bubbles: true,
+              cancelable: true
+            })
+          )
         );
         await settle(p);
         const id = await p.evaluate(() => {

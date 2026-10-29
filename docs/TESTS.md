@@ -8,6 +8,7 @@
 | `backend/tests/p14_order.test.js` | P14 後端離線測試：書櫃與分類頁簽的順序（權限、驗證、訪客不外洩私人分類） |
 | `backend/tests/p15_html.test.js` | P15 後端離線測試：HTML 卡片（上傳驗證、權限、公開規則、匯出、備份清單） |
 | `backend/tests/p16_cleanup.test.js` | P16 後端離線測試：清理未使用檔案（跨畫布判斷、7 天寬限、權限、只移垃圾桶、過期清單不誤刪） |
+| `backend/tests/p17_pdf.test.js` | P17 後端離線測試：PDF 卡片（上傳驗證、大小上限、去重、權限、公開規則、匯出、備份清單、清理） |
 | `backend/tests/p5_sync.test.js` | P5 後端離線測試：自動備份（分段、核對、保留份數、還原一致）與 GitHub 同步（差異、只送公開、不外洩 token） |
 | `backend/tests/p6_preview.test.js` | P6 後端離線測試：連結預覽（網址檢查、解析、權限、不被利用去連內網）、刪除畫布 |
 | `backend/tests/p7_image.test.js` | P7b-2 後端離線測試：圖片卡（上傳驗證、權限、公開規則、匯出、備份） |
@@ -27,6 +28,8 @@
 | `frontend/tests/p15_embed_e2e.test.js` | P15：畫布嵌入卡片（HTML 檔：預設不執行腳本、可開腳本、最多同時 3 個；嵌入網頁：只收 https；選檔上傳；訪客可看） |
 | `frontend/tests/p15_logic.test.js` | P15 純邏輯：嵌入卡片（htmlIdOf／embedUrl／embedDoc／zipKind 的 html） |
 | `frontend/tests/p16_cleanup_e2e.test.js` | P16：設定頁「清理未使用檔案」（掃描、預設全選、取消勾選、移到垃圾桶；訪客看不到） |
+| `frontend/tests/p17_fullscreen_e2e.test.js` | P17：全螢幕工具列自動隱藏（桌機頂端／手機底部）、單卡片全螢幕、PDF 卡片、貼上嵌入碼與 Google 連結自動轉換 |
+| `frontend/tests/p17_logic.test.js` | P17 純邏輯：PDF（pdfIdOf／pdfBase64）、嵌入網址自動轉換（Google 簡報／雲端硬碟）、貼上 <iframe> 嵌入碼、備份 zipKind |
 | `frontend/tests/p35_e2e.test.js` | P3.5 端對端：沉浸閱讀、刪除筆記、主題管理 |
 | `frontend/tests/p36_e2e.test.js` | P3.6 端對端：多選與批次修改主題／公開 |
 | `frontend/tests/p37_e2e.test.js` | 設定疊在目前畫面上：從筆記、編輯器、沉浸閱讀開設定，關掉後回到原處 |

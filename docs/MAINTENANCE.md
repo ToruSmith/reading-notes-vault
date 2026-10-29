@@ -40,6 +40,9 @@
 - 程式碼格式：Prettier（`.prettierrc.json`，printWidth 110）；改完可 `npx prettier --write "frontend/*.js" "backend/*.gs"`。
 
 - 刪卡片連帶刪檔：`Core.gs` 的 `assetRefs_／restoreAssets_／dropAssets_`（`saveBoard_`、`deleteBoard_` 呼叫；只 trash；其他畫布讀不了就不動；新引用的檔案若在垃圾桶會 `store.untrash` 救回）。上傳去重：`findSameAsset_`。
+- 全螢幕工具列自動隱藏（P17）：`canvas.js` 的 `setupAutoHide`／`flashStatus`；樣式在 `style.css` 最後的「全螢幕：工具列自動隱藏」（桌機頂端、`(pointer:coarse),(max-width:640px)` 時底部＋`.cv-fab`）。工具列平常是 `transform` 移出畫面，**測試要點工具列按鈕前先把滑鼠移到頂端（`.cv-bar.show`）**。注意觸控裝置的 `:hover` 會黏住，判斷忙碌時用 `hoverable()`。
+- 單卡片全螢幕與 PDF（P17）：`canvas_embed.js` 的 `toggleCardFull`（全螢幕 API，不支援時呼叫 fallback）、`frameBox`（共用工具列：互動、↗、⛶、✕）、`fillPdf`／`withPdf`／`pdfInline`；後端 `Core.gs` 的 `uploadPdf_／getPdf_／exportPdf_`（資料網址文字存成 `assets/<id>.pdf`，上限 `LIMITS.PDF_BYTES`，備份、清理 `ASSET_NAME_RE`、`isAssetPath_` 都要含 pdf）。**PDF 不能放進 sandbox iframe**（Chrome 會擋內建檢視器），所以用 blob 網址＋無 sandbox；這是刻意的，PDF 不是網頁、不會在本站執行腳本。
+- 嵌入網址轉換（P17）：`canvaslogic.js` 的 `normalizeEmbed`（Google 簡報 pub/edit/view → embed、雲端硬碟 view → preview）、`extractEmbedSrc`（貼 `<iframe>` 取 src）、`embedUrl`（只收 https 並套用轉換）；連結面板在 `canvas_panels.js`。
 - 清理（P16）：後端 `Core.gs` 的 `unusedAssets_／scanAssets_／trashAssets_`（掃全部 `boards/` 的 file 卡；`ASSET_GRACE_DAYS=7`；只 `trash`，不永久刪除；移除時重算）；前端 `cleanup.js`（`U.cleanupSection`，由 `settings.js` 掛上）。
 
 ## 加一個新功能的最短路徑

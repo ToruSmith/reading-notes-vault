@@ -201,17 +201,15 @@ const PNG = Buffer.from(
         ).blob();
         const dt = new DataTransfer();
         dt.items.add(new File([b], 'e.png', { type: 'image/png' }));
-        document
-          .querySelector('.cv-view')
-          .dispatchEvent(
-            new DragEvent('drop', {
-              dataTransfer: dt,
-              bubbles: true,
-              cancelable: true,
-              clientX: 500,
-              clientY: 300
-            })
-          );
+        document.querySelector('.cv-view').dispatchEvent(
+          new DragEvent('drop', {
+            dataTransfer: dt,
+            bubbles: true,
+            cancelable: true,
+            clientX: 500,
+            clientY: 300
+          })
+        );
       });
       await o.waitForFunction(() => /失敗/.test(document.querySelector('.cv-status').textContent));
       assert.strictEqual((await state(o)).board.nodes.length, n0 + 1);

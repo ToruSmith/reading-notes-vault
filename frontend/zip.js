@@ -54,7 +54,7 @@
   function doExport() {
     var z = S.zip,
       zip = new Z(),
-      n = { notes: 0, assets: 0, images: 0, htmls: 0, topics: 0, boards: 0 },
+      n = { notes: 0, assets: 0, images: 0, htmls: 0, pdfs: 0, topics: 0, boards: 0 },
       missing = [];
     z.busy = true;
     z.msg = T('準備中…');
@@ -119,6 +119,19 @@
             n.htmls++;
           });
           z.msg = T('匯出 HTML {1}', n.htmls);
+          paint();
+        });
+      })
+      .then(function () {
+        return pullAll('exportPdf', function (r) {
+          r.pdfs.forEach(function (a) {
+            var m = /^data:application\/pdf;base64,(.+)$/.exec(a.data || '');
+            if (m) {
+              zip.file('assets/' + a.id + '.pdf', m[1], { base64: true });
+              n.pdfs++;
+            }
+          });
+          z.msg = T('匯出 PDF {1}', n.pdfs);
           paint();
         });
       })
@@ -193,6 +206,7 @@
       assets: [],
       images: [],
       htmls: [],
+      pdfs: [],
       topics: [],
       boards: [],
       problems: [],
@@ -213,6 +227,27 @@
               return null;
             }
             if (k.kind === 'manifest') return null;
+            if (k.kind === 'pdf')
+              return en.e.async('base64').then(function (b) {
+                var data = b.indexOf('JVBERi0') === 0 ? 'data:application/pdf;base64,' + b : null;
+                if (!data) {
+                  // 自動備份：內容是「資料網址」文字
+                  try {
+                    var t = atob(b);
+                    if (/^data:application\/pdf;base64,[A-Za-z0-9+\/]+={0,2}$/.test(t)) data = t;
+                  } catch (x) {
+                    /* 略 */
+                  }
+                }
+                if (data) P.pdfs.push({ id: k.id, data: data });
+                else P.problems.push(T('{1}：不是有效的 PDF', en.path));
+              });
+            if (k.kind === 'imgtext')
+              return en.e.async('string').then(function (text) {
+                if (/^data:image\/(?:png|jpeg|webp);base64,[A-Za-z0-9+\/]+={0,2}$/.test(text))
+                  P.images.push({ id: k.id, data: text });
+                else P.problems.push(T('{1}：不是有效的圖片', en.path));
+              });
             if (k.kind === 'image')
               return en.e.async('base64').then(function (b) {
                 P.images.push({
@@ -293,11 +328,13 @@
       localAssets = {},
       localImages = {},
       localHtmls = {},
+      localPdfs = {},
       total =
         P.topics.length +
         P.assets.length +
         P.images.length +
         P.htmls.length +
+        P.pdfs.length +
         P.notes.length +
         P.boards.length,
       done = 0;
@@ -380,6 +417,28 @@
           });
         });
       });
+    if (P.pdfs.length)
+      step(function () {
+        return pullAll('exportPdf', function (r) {
+          r.pdfs.forEach(function (x) {
+            localPdfs[x.id] = x.data;
+          });
+        });
+      });
+    P.pdfs.forEach(function (a) {
+      step(function () {
+        if (a.id in localPdfs)
+          return add(
+            'PDF',
+            a.id,
+            localPdfs[a.id] === a.data ? 'same' : 'differs',
+            localPdfs[a.id] === a.data ? T('已存在且內容相同') : T('已存在但內容不同，未覆寫')
+          );
+        return api('uploadPdf', { id: a.id, data: a.data }).then(function (r) {
+          add('PDF', a.id, r.ok ? 'ok' : 'error', r.ok ? '' : T.all(r.reasons || [r.error]).join(T('；')));
+        });
+      });
+    });
     P.htmls.forEach(function (a) {
       step(function () {
         if (a.id in localHtmls)

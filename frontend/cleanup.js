@@ -58,7 +58,10 @@
         list.appendChild(
           el('label', { class: 'cleanrow' }, [
             box,
-            el('span', { text: (/\.html$/.test(x.name) ? 'HTML ' : T('圖片') + ' ') + x.name }),
+            el('span', {
+              text:
+                (/\.html$/.test(x.name) ? 'HTML ' : /\.pdf$/.test(x.name) ? 'PDF ' : T('圖片') + ' ') + x.name
+            }),
             el('span', { class: 'sub', text: kb(x.size) + ' · ' + String(x.updatedAt).slice(0, 10) })
           ])
         );

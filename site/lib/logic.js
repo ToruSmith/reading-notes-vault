@@ -840,6 +840,11 @@ var VaultLogic = (function () {
     if (m[1] === 'assets' && (x = /^(\d{8}-[a-z0-9]{2,8})\.(png|jpg|webp)$/.exec(n)))
       return { kind: 'image', id: x[1], ext: x[2] };
     if (m[1] === 'assets' && (x = /^(\d{8}-[a-z0-9]{2,8})\.html$/.exec(n))) return { kind: 'html', id: x[1] };
+    // PDF：前端匯出的是真正的 .pdf 二進位；自動備份（Drive）存的是資料網址文字，同樣叫 .pdf，由還原時看內容分辨
+    if (m[1] === 'assets' && (x = /^(\d{8}-[a-z0-9]{2,8})\.pdf$/.exec(n))) return { kind: 'pdf', id: x[1] };
+    // 自動備份（Drive）裡的圖片是資料網址文字（.img）
+    if (m[1] === 'assets' && (x = /^(\d{8}-[a-z0-9]{2,8})\.img$/.exec(n)))
+      return { kind: 'imgtext', id: x[1] };
     if (m[1] === 'boards' && (x = /^([a-z0-9][a-z0-9-]{0,39})\.canvas\.json$/.exec(n)))
       return { kind: 'board', id: x[1] };
     if (m[1] === 'topics' && (x = /^([a-z0-9][a-z0-9-]{0,39})\.json$/.exec(n)))
