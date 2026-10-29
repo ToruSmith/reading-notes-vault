@@ -32,11 +32,14 @@ t('index.src.html 有建置需要的所有佔位，且沒有手寫的 <script> �
     '只應有 ROUTE 與 I18N 兩個內嵌設定，其餘由 modules.json 產生'
   );
 });
-t('site/lib/logic.js 與 frontend/logic.js 完全相同（靜態站用副本；改了 frontend/logic.js 請 cp 過去）', () => {
-  const a = fs.readFileSync(path.join(root, 'logic.js'), 'utf8');
-  const b = fs.readFileSync(path.join(root, '..', 'site', 'lib', 'logic.js'), 'utf8');
-  assert.strictEqual(a, b, '請執行：cp frontend/logic.js site/lib/logic.js');
-});
+t(
+  'site/lib/logic.js 與 frontend/logic.js 完全相同（靜態站用副本；改了 frontend/logic.js 請 cp 過去）',
+  () => {
+    const a = fs.readFileSync(path.join(root, 'logic.js'), 'utf8');
+    const b = fs.readFileSync(path.join(root, '..', 'site', 'lib', 'logic.js'), 'utf8');
+    assert.strictEqual(a, b, '請執行：cp frontend/logic.js site/lib/logic.js');
+  }
+);
 t('repo 內所有檔名都是 ASCII（GitHub 網頁上傳會略過中文檔名）', () => {
   const top = path.join(root, '..'),
     bad = [];

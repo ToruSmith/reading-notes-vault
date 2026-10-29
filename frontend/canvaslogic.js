@@ -1000,10 +1000,52 @@ var CanvasLogic = (function () {
     var m = /^assets\/(\d{8}-[a-z0-9]{2,8})\.html$/.exec(String(file || ''));
     return m ? m[1] : null;
   }
-  /** 只有 https 網址可嵌入（http 在 https 頁面內會被瀏覽器擋掉）。 */
+  function pdfIdOf(file) {
+    var m = /^assets\/(\d{8}-[a-z0-9]{2,8})\.pdf$/.exec(String(file || ''));
+    return m ? m[1] : null;
+  }
+  /** PDF 資料網址 → base64 內容；不是 PDF 就回傳 null（檔頭 %PDF- 的 base64 開頭是 JVBERi0）。 */
+  function pdfBase64(dataUrl) {
+    var m = /^data:application\/pdf;base64,([A-Za-z0-9+\/]+={0,2})$/.exec(String(dataUrl || ''));
+    return m && m[1].indexOf('JVBERi0') === 0 ? m[1] : null;
+  }
+  /**
+   * 常見網址自動換成「可嵌入」的網址（原本的連結不改，只有嵌入時用）：
+   *  - Google 簡報「發布到網路」的 /pub → /embed；分享用的 /edit、/view → /embed（檔案需開成「知道連結的人可檢視」）
+   *  - Google 雲端硬碟檔案（PDF、影片等）/view → /preview
+   */
+  function normalizeEmbed(u) {
+    var m;
+    if (
+      (m =
+        /^(https:\/\/docs\.google\.com\/presentation\/d\/e\/[A-Za-z0-9_-]+)\/(?:pub|pubhtml)(\?[^#]*)?(?:#.*)?$/.exec(
+          u
+        ))
+    )
+      return m[1] + '/embed' + (m[2] || '');
+    if (
+      (m =
+        /^(https:\/\/docs\.google\.com\/presentation\/d\/(?!e\/)[A-Za-z0-9_-]+)\/(?:edit|view|present|preview)(?:[?#].*)?$/.exec(
+          u
+        ))
+    )
+      return m[1] + '/embed?start=false&loop=false&delayms=3000';
+    if ((m = /^https:\/\/drive\.google\.com\/file\/d\/([A-Za-z0-9_-]+)\/(?:view|edit)(?:[?#].*)?$/.exec(u)))
+      return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+    if ((m = /^https:\/\/drive\.google\.com\/open\?(?:[^#]*&)?id=([A-Za-z0-9_-]+)/.exec(u)))
+      return 'https://drive.google.com/file/d/' + m[1] + '/preview';
+    return u;
+  }
+  /** 使用者貼上整段 <iframe …> 嵌入碼時，取出裡面的 src 網址；沒有就回傳原文。 */
+  function extractEmbedSrc(text) {
+    var m = /<iframe\b[^>]*?\ssrc\s*=\s*(?:"([^"]+)"|'([^']+)')/i.exec(String(text || ''));
+    if (!m) return String(text || '');
+    return (m[1] || m[2]).replace(/&amp;/g, '&').trim();
+  }
+  /** 只有 https 網址可嵌入（http 在 https 頁面內會被瀏覽器擋掉）；會順便套用 normalizeEmbed。 */
   function embedUrl(u) {
     u = safeUrl(u);
-    return u && /^https:\/\//i.test(u) ? u : null;
+    return u && /^https:\/\//i.test(u) ? normalizeEmbed(u) : null;
   }
   /** 把 HTML 檔包上 CSP（不能連線到任意站台；腳本只有擁有者開啟時才允許），回傳給 iframe srcdoc 用的完整文件。 */
   function embedDoc(html, scripts) {
@@ -1046,6 +1088,10 @@ var CanvasLogic = (function () {
     openerDoc: openerDoc,
     embedSandbox: embedSandbox,
     htmlIdOf: htmlIdOf,
+    pdfIdOf: pdfIdOf,
+    pdfBase64: pdfBase64,
+    normalizeEmbed: normalizeEmbed,
+    extractEmbedSrc: extractEmbedSrc,
     embedUrl: embedUrl,
     embedDoc: embedDoc,
     dropDanglingEdges: dropDanglingEdges,

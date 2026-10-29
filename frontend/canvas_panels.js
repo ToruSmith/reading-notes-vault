@@ -67,12 +67,15 @@
         p.pv = cb.checked;
       });
       var add = function () {
-        var u = CL.safeUrl(inp.value);
+        var fromCode = /<iframe\b/i.test(inp.value); // 也可以直接貼上整段嵌入碼（<iframe src="…">）
+        var u = CL.safeUrl(CL.extractEmbedSrc(inp.value));
         if (!u) {
           setStatus(T('請輸入 http 或 https 開頭的網址。'));
           return;
         }
-        var id = addNode('link', { url: u });
+        // 貼的是嵌入碼、或是 Google 簡報／雲端硬碟這類可自動轉成嵌入的網址：直接開啟「嵌入網頁」
+        var emb = CL.embedUrl(u) && (fromCode || CL.normalizeEmbed(u) !== u || /\/embed(?:[?#]|$)/.test(u));
+        var id = addNode('link', emb ? { url: u, 'x-embed': true } : { url: u });
         C.panel = null;
         renderPanel();
         if (cb.checked && /^https:\/\//i.test(u)) fetchPreviewFor(id, u);
@@ -84,6 +87,10 @@
         el('div', { class: 'panel cv-panel' }, [
           el('h3', { text: T('新增連結卡片') }),
           inp,
+          el('p', {
+            class: 'sub',
+            text: T('Google 簡報、雲端硬碟 PDF 可貼分享連結或整段 <iframe> 嵌入碼，會自動嵌入。')
+          }),
           el('p', { class: 'sub' }, [
             cb,
             ' ',

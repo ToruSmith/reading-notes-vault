@@ -16,6 +16,13 @@ const open = async p => {
   await p.waitForFunction(() => document.querySelectorAll('.cv-node').length >= 1);
   await settle(p);
 };
+// 全螢幕時工具列自動收起：把滑鼠移到頂端熱區讓它浮現
+const reveal = async p => {
+  await p.mouse.move(300, 300);
+  await p.mouse.move(300, 3);
+  await p.waitForSelector('.cv-bar.show');
+  await p.waitForTimeout(260);
+};
 (async () => {
   const browser = await chromium.launch();
   try {
@@ -36,6 +43,7 @@ const open = async p => {
       async () => {
         await o.getByRole('button', { name: '全螢幕', exact: true }).click();
         await settle(o);
+        await reveal(o);
         assert.strictEqual(await o.locator('#main > h2').isVisible(), false);
         assert.ok(await o.locator('.cv-toolsbtn').isVisible());
         assert.strictEqual(await o.getByRole('button', { name: '簡報', exact: true }).isVisible(), false);
@@ -47,6 +55,7 @@ const open = async p => {
       }
     );
     await t('☰ 工具：點開看得到全部按鈕與下拉選單；選功能後自動收起；點外面也收起', async () => {
+      await reveal(o);
       await o.locator('.cv-toolsbtn').click();
       assert.ok(await o.getByRole('button', { name: '簡報', exact: true }).isVisible());
       assert.ok(await o.locator('.cv-bar .cv-mbtn', { hasText: '＋ 新增' }).isVisible());
@@ -71,6 +80,7 @@ const open = async p => {
       await settle(o);
     });
     await t('離開全螢幕後恢復原本的工具列', async () => {
+      await reveal(o);
       await o.getByRole('button', { name: '離開全螢幕', exact: true }).click();
       await settle(o);
       assert.ok(await o.getByRole('button', { name: '簡報', exact: true }).isVisible());

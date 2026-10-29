@@ -878,7 +878,9 @@ const t = async (name, fn) => {
     h.exportAssets = () => ({ ok: true, assets: [{ id: '20261022-v001', svg: '<svg/>' }], cursor: null });
     h.exportImages = () => ({ ok: true, images: [], cursor: null });
     h.exportHtml = () => ({ ok: true, htmls: [], cursor: null });
+    h.exportPdf = () => ({ ok: true, pdfs: [], cursor: null });
     h.exportHtml = () => ({ ok: true, htmls: [], cursor: null });
+    h.exportPdf = () => ({ ok: true, pdfs: [], cursor: null });
     return h;
   };
   const itemsWithStamp = h => {
@@ -969,6 +971,7 @@ const t = async (name, fn) => {
       h.exportAssets = () => ({ ok: true, assets: [], cursor: null });
       h.exportImages = () => ({ ok: true, images: [], cursor: null });
       h.exportHtml = () => ({ ok: true, htmls: [], cursor: null });
+      h.exportPdf = () => ({ ok: true, pdfs: [], cursor: null });
       h.saveTopic = p => {
         rec.topic.push(p);
         return { ok: true, id: p.id };

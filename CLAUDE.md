@@ -45,6 +45,7 @@ docs/      文件   examples/  範例畫布與樣本 vault
 5. **後端改動需在「讀取」與「編輯」兩個部署都發新版本**；只改前端則只需換 `index.html`。
 6. 安全底線（不得放寬）：
    - 公開與否只由後端判斷；REST GET 一律當訪客；寫入動作只有擁有者（`OWNER_EMAIL`）能呼叫。
+   - 嵌入的 PDF：只能用 blob 網址（不能 sandbox，因為瀏覽器的 PDF 檢視器不能放進沙箱）；後端必驗檔頭 `%PDF-` 與大小上限；訪客規則同 HTML。
    - 嵌入的 HTML：srcdoc + sandbox，**絕不給 `allow-same-origin`／`allow-top-navigation`**；`allow-scripts` 僅在卡片 `x-scripts===true`；只允許 https 網址；訪客只能取得被公開主題畫布引用的 HTML。
    - SVG 上傳要消毒；上傳有大小上限（`LIMITS`）。
    - 不把 token／金鑰放進前端。

@@ -64,6 +64,7 @@ function backupFileList_(store) {
     ['assets', '.svg', 'assets/'],
     ['assets', '.img', 'assets/'],
     ['assets', '.html', 'assets/'],
+    ['assets', '.pdf', 'assets/'],
     ['boards', '.json', 'boards/']
   ].forEach(function (g) {
     let cursor = null;

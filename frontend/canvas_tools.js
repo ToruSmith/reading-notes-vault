@@ -354,10 +354,16 @@
       var htmls = K.embed
         ? Array.prototype.filter.call((e.dataTransfer && e.dataTransfer.files) || [], K.embed.htmlOk)
         : [];
+      var pdfs = K.embed
+        ? Array.prototype.filter.call((e.dataTransfer && e.dataTransfer.files) || [], K.embed.pdfOk)
+        : [];
       var imgs = imageFilesOf(e.dataTransfer);
-      if (!imgs.length && !htmls.length) return;
+      if (!imgs.length && !htmls.length && !pdfs.length) return;
       e.preventDefault();
       var p = K.toWorld(e.clientX, e.clientY);
+      pdfs.forEach(function (f, i) {
+        K.embed.addPdfFile(f, { x: p.x + i * 30, y: p.y + i * 30 });
+      });
       htmls.forEach(function (f, i) {
         K.embed.addHtmlFile(f, { x: p.x + i * 30, y: p.y + i * 30 });
       });

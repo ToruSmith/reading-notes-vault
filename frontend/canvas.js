@@ -121,7 +121,97 @@
   }
   function setStatus(msg) {
     C.status = msg || '';
-    if (C.dom && C.dom.status) C.dom.status.textContent = C.status;
+    if (C.dom && C.dom.status) {
+      C.dom.status.textContent = C.status;
+      flashStatus(C.dom); // 全螢幕時訊息是浮動的，短暫顯示後淡出
+    }
+  }
+  function flashStatus(d) {
+    if (!d.status) return;
+    d.status.classList.add('flash');
+    clearTimeout(d.flashT);
+    d.flashT = setTimeout(function () {
+      d.status.classList.remove('flash');
+    }, 3500);
+  }
+
+  /* ───── 全螢幕的工具列自動隱藏 ─────
+   * 全螢幕時工具列平常收起：桌機滑鼠移到畫面頂端（或 Tab 鍵移到工具列）才浮現，離開後約 1.4 秒收起；
+   * 手機／窄螢幕工具列在底部（單手好按），由左下角的圓形按鈕開關，點畫布空白處或閒置 5 秒自動收起。
+   * 展開的下拉選單、面板或正在輸入時不會收起。樣式在 style.css 的「全螢幕：工具列自動隱藏」。 */
+  function hoverable() {
+    try {
+      return window.matchMedia('(hover: hover)').matches;
+    } catch (e) {
+      return true;
+    }
+  }
+  function setupAutoHide(d) {
+    var bar = d.bar,
+      hideT = null;
+    function busy() {
+      var a = document.activeElement;
+      return (
+        (hoverable() && bar.matches(':hover')) || // 觸控裝置的 :hover 會黏在最後點的按鈕上，不能拿來判斷
+        (d.tools && d.tools.classList.contains('open')) ||
+        !!bar.querySelector('.cv-mlist:not([hidden])') ||
+        (a && bar.contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName))
+      );
+    }
+    function show(on) {
+      clearTimeout(hideT);
+      bar.classList.toggle('show', !!on);
+    }
+    function arm(ms) {
+      clearTimeout(hideT);
+      hideT = setTimeout(function () {
+        if (!C || C.dom !== d || !S.cvFull) return;
+        if (busy()) return arm(900);
+        show(false);
+      }, ms || 1400);
+    }
+    d.peek = function (ms) {
+      show(true);
+      arm(ms);
+    };
+    d.hot = el('div', { class: 'cv-hot', 'aria-hidden': 'true' });
+    d.hot.addEventListener('mouseenter', function () {
+      if (S.cvFull) d.peek();
+    });
+    d.fab = el('button', {
+      type: 'button',
+      class: 'cv-fab',
+      text: '☰',
+      'aria-label': T('顯示／隱藏工具列'),
+      title: T('顯示／隱藏工具列')
+    });
+    d.fab.addEventListener('click', function (ev) {
+      ev.stopPropagation();
+      d.peek(5000);
+    });
+    bar.addEventListener('mouseenter', function () {
+      if (S.cvFull) show(true);
+    });
+    bar.addEventListener('mouseleave', function () {
+      if (S.cvFull) arm(700);
+    });
+    bar.addEventListener('focusin', function () {
+      if (S.cvFull) show(true);
+    });
+    bar.addEventListener('focusout', function () {
+      if (S.cvFull) arm(1400);
+    });
+    bar.addEventListener('click', function () {
+      if (S.cvFull) arm(3500); // 點了按鈕後讓它多留一會兒，不要馬上縮回去
+    });
+    d.view.addEventListener('pointerdown', function () {
+      if (S.cvFull && bar.classList.contains('show') && !busy()) show(false);
+    });
+    d.hideBar = function () {
+      show(false);
+    };
+    d.root.appendChild(d.hot);
+    d.root.appendChild(d.fab);
   }
 
   function openCanvas(topic) {
@@ -391,6 +481,13 @@
             }
           },
           {
+            label: T('PDF 檔'),
+            title: T('放入一個 PDF 檔（最大 5 MB；桌機可在卡片內翻頁，手機會在新分頁開啟；也可拖進畫布）'),
+            fn: function () {
+              if (K.embed) K.embed.pickPdf();
+            }
+          },
+          {
             label: T('手繪'),
             title: T('用筆畫圖，存成 SVG 圖片卡'),
             fn: function () {
@@ -643,6 +740,9 @@
     if (C.editable) wrap.appendChild(d.insp);
     d.root.appendChild(wrap);
     main.appendChild(d.root);
+    d.bar = bar;
+    setupAutoHide(d);
+    if (S.cvFull && d.peek) d.peek(2600); // 全螢幕中重畫（例如存檔後）時，先露出一下讓人知道工具列在哪
 
     bindView();
     if (C.needFit) {
@@ -803,13 +903,15 @@
       var c = id && noteCache[id];
       return c && c.state === 'ok'
         ? c.title
-        : CL.htmlIdOf(n.file)
-          ? T('HTML：{1}', n['x-title'] || CL.htmlIdOf(n.file))
-          : imgIdOf(n)
-            ? T('圖片：{1}', imgIdOf(n))
-            : svgIdOf(n)
-              ? T('圖：{1}', svgIdOf(n))
-              : n.file || T('（檔案）');
+        : CL.pdfIdOf(n.file)
+          ? T('PDF：{1}', n['x-title'] || CL.pdfIdOf(n.file))
+          : CL.htmlIdOf(n.file)
+            ? T('HTML：{1}', n['x-title'] || CL.htmlIdOf(n.file))
+            : imgIdOf(n)
+              ? T('圖片：{1}', imgIdOf(n))
+              : svgIdOf(n)
+                ? T('圖：{1}', svgIdOf(n))
+                : n.file || T('（檔案）');
     }
     if (n.type === 'link') {
       var pv = CL.effPreview(CL.safeUrl(n.url), n['x-preview']);
@@ -1268,6 +1370,10 @@
     }
     if (C && C.dom) {
       if (C.dom.fullBtn) C.dom.fullBtn.textContent = on ? T('離開全螢幕') : T('全螢幕');
+      if (C.dom.hideBar) {
+        C.dom.hideBar();
+        if (on && !was && C.dom.peek) C.dom.peek(2600);
+      }
       setTimeout(function () {
         if (C && C.dom) draw();
       }, 50);
@@ -1453,7 +1559,8 @@
     if (C.editable)
       mutate(function () {
         return next;
-      }); // 擁有者：寫入 x-collapsed，視為修改（可復原、按儲存才生效）
+      });
+    // 擁有者：寫入 x-collapsed，視為修改（可復原、按儲存才生效）
     else {
       C.board = next;
     } // 訪客與手機唯讀：只在這個畫面暫時展開或收合，不存檔

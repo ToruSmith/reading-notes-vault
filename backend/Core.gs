@@ -20,6 +20,7 @@ var LIMITS = {
   WARN_SVG_BYTES: 100 * 1024,
   WARN_IMG_BYTES: 1024 * 1024,
   HTML_BYTES: 500 * 1024,
+  PDF_BYTES: 5 * 1024 * 1024,
   HARD_BYTES: 5 * 1024 * 1024,
   MAX_TITLE: 200,
   REBUILD_PAGE: 150
@@ -302,7 +303,7 @@ function noteIdFromPath_(p) {
   return m ? m[1] : null;
 }
 function isAssetPath_(p) {
-  return /^assets\/\d{8}-[a-z0-9]{2,8}\.(svg|img|html)$/.test(String(p || ''));
+  return /^assets\/\d{8}-[a-z0-9]{2,8}\.(svg|img|html|pdf)$/.test(String(p || ''));
 }
 
 /**
@@ -454,6 +455,8 @@ var WRITE_ACTIONS_ = {
   saveOrder: 1,
   uploadHtml: 1,
   exportHtml: 1,
+  uploadPdf: 1,
+  exportPdf: 1,
   scanAssets: 1,
   trashAssets: 1
 };
@@ -493,6 +496,12 @@ function handle_(action, payload, ctx, method, store) {
       return uploadHtml_(payload, store);
     case 'exportHtml':
       return exportHtml_(payload, store);
+    case 'getPdf':
+      return getPdf_(payload, owner, store);
+    case 'uploadPdf':
+      return uploadPdf_(payload, store);
+    case 'exportPdf':
+      return exportPdf_(payload, store);
     case 'scanAssets':
       return scanAssets_(payload, store);
     case 'trashAssets':
@@ -1552,6 +1561,51 @@ function exportHtml_(payload, store) {
   return { ok: true, htmls: htmls, cursor: page.cursor };
 }
 
+/* ───── PDF 卡片（P17）─────
+ * PDF 以資料網址文字（data:application/pdf;base64,…）存成 assets/<id>.pdf，與圖片相同（Drive 內是純文字檔，備份不需特別處理二進位）。
+ * 後端只檢查：格式、檔頭是 %PDF-、大小上限。內容不改寫；顯示端用瀏覽器內建檢視器，不執行 PDF 內的任何東西在本站網域。 */
+function uploadPdf_(payload, store) {
+  const d = payload.data;
+  if (typeof d !== 'string') return { ok: false, error: '內容不符規則', reasons: ['data 必須是字串'] };
+  const m = /^data:application\/pdf;base64,([A-Za-z0-9+\/]+={0,2})$/.exec(d);
+  if (!m) return { ok: false, error: '內容不符規則', reasons: ['只接受 PDF 檔'] };
+  if (m[1].indexOf('JVBERi0') !== 0)
+    return { ok: false, error: '內容不符規則', reasons: ['PDF 內容與格式不符'] };
+  const bytes = Math.floor((m[1].length * 3) / 4);
+  if (bytes > LIMITS.PDF_BYTES)
+    return { ok: false, error: '內容不符規則', reasons: ['PDF 檔超過 5 MB 上限'] };
+  const wanted = payload.id ? String(payload.id) : '';
+  if (wanted && !ID_RE.test(wanted))
+    return { ok: false, error: '內容不符規則', reasons: ['id 格式必須是「日期-短碼」'] };
+  return store.lock(function () {
+    const same = wanted ? null : findSameAsset_(store, '.pdf', d, d.length);
+    if (same) return { ok: true, id: same, bytes: bytes, created: false, reused: true };
+    const id = wanted || newId_(store.today(), store.getIndexRows(), store);
+    const name = id + '.pdf';
+    const f = store.findFileByName('assets', name);
+    if (f) store.updateText(f.fileId, d);
+    else store.createText('assets', name, d);
+    return { ok: true, id: id, bytes: bytes, created: !f };
+  });
+}
+function getPdf_(payload, owner, store) {
+  const id = String(payload.id || '');
+  if (!ID_RE.test(id)) return NOT_FOUND;
+  const f = store.findFileByName('assets', id + '.pdf');
+  if (!f) return NOT_FOUND;
+  if (!owner && !isAssetReferencedPublic_('assets/' + id + '.pdf', store)) return NOT_FOUND;
+  return { ok: true, id: id, data: store.readText(f.fileId), updatedAt: f.updatedAt };
+}
+function exportPdf_(payload, store) {
+  const page = store.listFilesPage('assets', payload.cursor || null, 2, '.pdf'); // PDF 較大，一次只取 2 個
+  const pdfs = [];
+  page.files.forEach(function (f) {
+    const id = f.name.replace(/\.pdf$/, '');
+    if (ID_RE.test(id)) pdfs.push({ id: id, data: store.readText(f.fileId), updatedAt: f.updatedAt });
+  });
+  return { ok: true, pdfs: pdfs, cursor: page.cursor };
+}
+
 function exportImages_(payload, store) {
   const page = store.listFilesPage('assets', payload.cursor || null, 8, '.img');
   const images = [];
@@ -1567,7 +1621,7 @@ function exportImages_(payload, store) {
  * 掃描只讀；移除只是移到 Drive 垃圾桶（30 天內可救回）。移除時伺服器會重算一次，
  * 所以過期的清單不可能讓「現在還被引用」的檔案被移走。任何一張畫布讀不了就整個中止（寧可不清）。 */
 const ASSET_GRACE_DAYS = 7;
-const ASSET_NAME_RE = /^(\d{8}-[a-z0-9]{2,8})\.(img|html)$/;
+const ASSET_NAME_RE = /^(\d{8}-[a-z0-9]{2,8})\.(img|html|pdf)$/;
 
 function unusedAssets_(store, includeRecent) {
   const used = {};
