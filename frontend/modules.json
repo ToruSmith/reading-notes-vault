@@ -1,0 +1,11 @@
+{
+  "_說明": "前端所有 JS 的唯一清單，順序就是載入順序。新增檔案只要加在這裡：build.js 會自動內嵌、縮小，i18n 漏翻檢查也會自動掃描（tests/build.test.js 會檢查清單與資料夾一致）。",
+  "vendor": ["vendor/markdown-it.min.js", "vendor/js-yaml.min.js", "vendor/jszip.min.js"],
+  "modules": [
+    "i18n.js", "themes.js", "pii.js", "logic.js", "canvaslogic.js", "canvasops.js", "ui.js",
+    "canvas.js", "canvas_panels.js", "canvas_insp.js", "canvas_tools.js", "canvas_embed.js", "canvas_present.js",
+    "edit.js", "upload.js", "views.js", "topics.js", "batch.js", "search.js", "zip.js",
+    "publish.js", "sync.js", "quick.js", "categories.js", "cleanup.js","settings.js"
+  ],
+  "skipI18nScan": ["i18n.js"]
+}

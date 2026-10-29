@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>讀書筆記 Vault</title>
+<style>/*__CSS__*/</style>
+</head>
+<body>
+<header class="bar">
+  <h1 data-i18n="讀書筆記 Vault">讀書筆記 Vault</h1>
+  <input id="q" type="search" placeholder="搜尋標題、標籤、主題" data-i18n-ph="搜尋標題、標籤、主題" aria-label="搜尋筆記" data-i18n-label="搜尋筆記" autocomplete="off" enterkeyhint="search">
+  <button type="button" id="btnMenu" class="tbtn menu-btn" aria-expanded="false" aria-controls="hmenu" data-i18n="選單">選單</button>
+  <span id="who" class="badge" role="status" data-i18n="載入中…">載入中…</span>
+  <div id="hmenu" class="hmenu"><span id="tools" class="tools"></span><button type="button" id="btnSettings" class="tbtn" data-i18n="設定">設定</button></div>
+</header>
+<div class="wrap" id="wrap">
+  <details id="shelf" class="shelf" open><summary data-i18n="書櫃">書櫃</summary><div id="shelfBody"></div></details>
+  <main id="main" tabindex="-1" aria-live="polite"><p class="empty" data-i18n="載入中…">載入中…</p></main>
+</div>
+<!--__VENDOR__-->
+<script>window.VAULT_ROUTE = /*__ROUTE__*/null;</script>
+<script>window.VAULT_I18N = /*__I18N__*/;</script>
+<!--__MODULES__-->
+</body>
+</html>
