@@ -3755,7 +3755,9 @@ function uploadImage_(payload, store) {
   const warnings = [];
   const w = sizeWarning_('這張圖片', bytes, LIMITS.WARN_IMG_BYTES);
   if (w) warnings.push(w);
-  return store.lock(function () {
+  // 不取全域鎖：大檔（數 MB）寫入 Drive 要好幾秒，持鎖會讓其他請求（含同時上傳的多個檔案）等不到鎖而逾時。
+  // 資源檔的 id 是日期＋隨機短碼，寫入前先查同名檔，碰撞機率可忽略；去重與寫入都不需要索引表的鎖。
+  return (function () {
     const same = wanted ? null : findSameAsset_(store, '.img', d, d.length);
     if (same) return { ok: true, id: same, bytes: bytes, warnings: warnings, created: false, reused: true };
     const id = wanted || newId_(store.today(), store.getIndexRows(), store);
@@ -3764,7 +3766,7 @@ function uploadImage_(payload, store) {
     if (f) store.updateText(f.fileId, d);
     else store.createText('assets', name, d);
     return { ok: true, id: id, bytes: bytes, warnings: warnings, created: !f };
-  });
+  })();
 }
 
 /** 被公開主題的畫布引用的圖片才算公開（圖片不會出現在筆記內文）。 */
@@ -3878,7 +3880,9 @@ function uploadPdf_(payload, store) {
   const wanted = payload.id ? String(payload.id) : '';
   if (wanted && !ID_RE.test(wanted))
     return { ok: false, error: '內容不符規則', reasons: ['id 格式必須是「日期-短碼」'] };
-  return store.lock(function () {
+  // 不取全域鎖：大檔（數 MB）寫入 Drive 要好幾秒，持鎖會讓其他請求（含同時上傳的多個檔案）等不到鎖而逾時。
+  // 資源檔的 id 是日期＋隨機短碼，寫入前先查同名檔，碰撞機率可忽略；去重與寫入都不需要索引表的鎖。
+  return (function () {
     const same = wanted ? null : findSameAsset_(store, '.pdf', d, d.length);
     if (same) return { ok: true, id: same, bytes: bytes, created: false, reused: true };
     const id = wanted || newId_(store.today(), store.getIndexRows(), store);
@@ -3887,7 +3891,7 @@ function uploadPdf_(payload, store) {
     if (f) store.updateText(f.fileId, d);
     else store.createText('assets', name, d);
     return { ok: true, id: id, bytes: bytes, created: !f };
-  });
+  })();
 }
 function getPdf_(payload, owner, store) {
   const id = String(payload.id || '');
